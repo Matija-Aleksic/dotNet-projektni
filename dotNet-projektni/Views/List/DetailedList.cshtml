@@ -1,0 +1,34 @@
+﻿<div class="container">
+    <h1>Shopping List Details - Created by: @Model.User.Username</h1>
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title">List Name: @Model.Name</h5>
+        </div>
+        <div class="card-body">
+            <p class="card-text">Description: @Model.Description</p>
+            <table class="table table-striped">
+                <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">Item</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col">Purchased</th>
+                </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.ShoppingListItems)
+                {
+                    <tr>
+                        <th scope="row">@item.ItemId</th>
+                        <td>@item.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.Unit</td>
+                        <td>@item.IsPurchased ? "Yes" : "No"</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
