@@ -1,113 +1,119 @@
-﻿using System.Collections;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Model;
+using dotNet_projektni.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace dotNet_projektni.Controllers
 {
 	public class ListController : Controller
 	{
-        public IActionResult Index()
-        {
-            User testUser = new User
-            {
-                UserId = 1,
-                Username = "testuser"
-            };
-            var testLists = new List<ShoppingList>
-            {
-                new ShoppingList
-                {
-                    UserId = 1,
-                    User = testUser,
-                    ShoppingListId = 1,
-                    Name = "Weekly Groceries",
-                    Description = "A list of items to buy for the week",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    ShoppingListItems = new List<Item>
-                    {
-                        new Item { ItemId = 1, Name = "Apples", Quantity = 5, Unit = "pcs", IsPurchased = false, CategoryId = 1 },
-                        new Item { ItemId = 2, Name = "Milk", Quantity = 2, Unit = "liters", IsPurchased = false, CategoryId = 2 },
-                        new Item { ItemId = 3, Name = "Bread", Quantity = 1, Unit = "loaf", IsPurchased = false, CategoryId = 3 },
-                        new Item { ItemId = 4, Name = "Chicken Breast", Quantity = 1, Unit = "kg", IsPurchased = false, CategoryId = 4 },
-                        new Item { ItemId = 5, Name = "Orange Juice", Quantity = 1, Unit = "liter", IsPurchased = false, CategoryId = 5 }
-                    }
-                },
-                new ShoppingList
-                {
-                    UserId = 1,
-                    User = testUser,
+		private readonly ApplicationDbContext _context;
+		private readonly ILogger<ListController> _logger;
 
-                    ShoppingListId = 2,
-                    Name = "Party Supplies",
-                    Description = "Items needed for the weekend party",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    ShoppingListItems = new List<Item>
-                    {
-                        new Item { ItemId = 6, Name = "Chips", Quantity = 3, Unit = "bags", IsPurchased = false, CategoryId = 6 },
-                        new Item { ItemId = 7, Name = "Soda", Quantity = 6, Unit = "bottles", IsPurchased = false, CategoryId = 5 },
-                        new Item { ItemId = 8, Name = "Cake", Quantity = 1, Unit = "pcs", IsPurchased = false, CategoryId = 3 },
-                        new Item { ItemId = 9, Name = "Plastic Cups", Quantity = 50, Unit = "pcs", IsPurchased = false, CategoryId = 8 },
-                        new Item { ItemId = 10, Name = "Napkins", Quantity = 2, Unit = "packs", IsPurchased = false, CategoryId = 8 }
-                    }
-                },
-                new ShoppingList
-                {
-                    UserId = 1,
-                    User = testUser,
+		public ListController(ApplicationDbContext context, ILogger<ListController> logger)
+		{
+			_context = context;
+			_logger = logger;
+		}
 
-                    ShoppingListId = 3,
-                    Name = "Office Supplies",
-                    Description = "Supplies needed for the office",
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now,
-                    ShoppingListItems = new List<Item>
-                    {
-                        new Item { ItemId = 11, Name = "Printer Paper", Quantity = 5, Unit = "reams", IsPurchased = false, CategoryId = 8 },
-                        new Item { ItemId = 12, Name = "Pens", Quantity = 10, Unit = "pcs", IsPurchased = false, CategoryId = 8 },
-                        new Item { ItemId = 13, Name = "Staples", Quantity = 1, Unit = "box", IsPurchased = false, CategoryId = 8 },
-                        new Item { ItemId = 14, Name = "Paper Clips", Quantity = 100, Unit = "pcs", IsPurchased = false, CategoryId = 8 },
-                        new Item { ItemId = 15, Name = "Notebooks", Quantity = 3, Unit = "pcs", IsPurchased = false, CategoryId = 8 }
-                    }
-                }
-            };
+		public async Task<IActionResult> Index()
+		{
+			var shoppingLists = await _context.ShoppingLists
+				.Include(s => s.ShoppingListItems)
+				.ToListAsync();
+			return View(shoppingLists);
+		}
 
-            return View(testLists);
-        }
-        [Route("List/Details/{id}")]  
-        public IActionResult DetailedList(int id)
-        {
-            User testUser = new User
-            {
-                UserId = 1,
-                Username = "testuser"
-            };
-            var ShoppingList = new ShoppingList
-            {
-                User = testUser,
-                ShoppingListId = 1,
-                Name = "Weekly Groceries",
-                Description = "A list of items to buy for the week",
-                CreatedAt = DateTime.Now,
-                UpdatedAt = DateTime.Now,
-                ShoppingListItems = new List<Item>
-                {
-                    new Item { ItemId = 1, Name = "Apples", Quantity = 5, Unit = "pcs", IsPurchased = false, CategoryId = 1 },
-                    new Item { ItemId = 2, Name = "Milk", Quantity = 2, Unit = "liters", IsPurchased = false, CategoryId = 2 },
-                    new Item { ItemId = 3, Name = "Bread", Quantity = 1, Unit = "loaf", IsPurchased = false, CategoryId = 3 },
-                    new Item { ItemId = 4, Name = "Chicken Breast", Quantity = 1, Unit = "kg", IsPurchased = false, CategoryId = 4 },
-                    new Item { ItemId = 5, Name = "Orange Juice", Quantity = 1, Unit = "liter", IsPurchased = false, CategoryId = 5 }
-                }
-            };
-        
-            return View(ShoppingList);
-        }
+		[Route("List/Details/{id}")]
+		public async Task<IActionResult> DetailedList(int id)
+		{
+			var shoppingList = await _context.ShoppingLists
+				.Include(s => s.ShoppingListItems)
+				.FirstOrDefaultAsync(s => s.ShoppingListId == id);
 
-        public IActionResult Create()
-        {
-            return View();
-        }
+			if (shoppingList == null)
+				return NotFound();
 
-    }
+			return View(shoppingList);
+		}
+
+		public IActionResult Create()
+		{
+			return View();
+		}
+
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> Create([Bind("Name,Description")] ShoppingList shoppingList)
+		{
+			if (ModelState.IsValid)
+			{
+				shoppingList.CreatedAt = DateTime.Now;
+				shoppingList.UpdatedAt = DateTime.Now;
+				shoppingList.UserId = 1;
+				shoppingList.ShoppingListItems ??= new List<Item>();
+
+				_context.Add(shoppingList);
+				await _context.SaveChangesAsync();
+				return RedirectToAction(nameof(Index));
+			}
+			return View(shoppingList);
+		}
+
+		public async Task<IActionResult> Edit(int? id)
+		{
+			if (id == null)
+				return NotFound();
+
+			var shoppingList = await _context.ShoppingLists.FindAsync(id);
+			if (shoppingList == null)
+				return NotFound();
+
+			return View(shoppingList);
+		}
+
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> Edit(int id, [Bind("ShoppingListId,Name,Description")] ShoppingList shoppingList)
+		{
+			if (id != shoppingList.ShoppingListId)
+				return NotFound();
+
+			if (ModelState.IsValid)
+			{
+				try
+				{
+					shoppingList.UpdatedAt = DateTime.Now;
+					_context.Update(shoppingList);
+					await _context.SaveChangesAsync();
+				}
+				catch (DbUpdateConcurrencyException)
+				{
+					if (!ShoppingListExists(shoppingList.ShoppingListId))
+						return NotFound();
+					throw;
+				}
+				return RedirectToAction(nameof(Index));
+			}
+			return View(shoppingList);
+		}
+
+		[HttpPost]
+		[ValidateAntiForgeryToken]
+		public async Task<IActionResult> Delete(int id)
+		{
+			var shoppingList = await _context.ShoppingLists.FindAsync(id);
+			if (shoppingList != null)
+			{
+				_context.ShoppingLists.Remove(shoppingList);
+				await _context.SaveChangesAsync();
+			}
+			return RedirectToAction(nameof(Index));
+		}
+
+		private bool ShoppingListExists(int id)
+		{
+			return _context.ShoppingLists.Any(e => e.ShoppingListId == id);
+		}
+	}
 }

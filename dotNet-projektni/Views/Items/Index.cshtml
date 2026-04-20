@@ -1,33 +1,22 @@
-﻿@model ShoppingList
+@model IEnumerable<Item>
 
 @{
-    ViewData["Title"] = "Shopping List Details";
+    ViewData["Title"] = "Items";
 }
 
 <div class="container mt-4">
     <div class="row mb-4">
         <div class="col-md-8">
-            <h1>@Model.Name</h1>
-            <p class="text-muted">Created: @Model.CreatedAt.ToString("yyyy-MM-dd")</p>
+            <h1>Items</h1>
         </div>
         <div class="col-md-4 text-end">
-            <a asp-controller="Items" asp-action="Create" asp-route-shoppingListId="@Model.ShoppingListId" class="btn btn-success">Add Item</a>
-            <a asp-action="Edit" asp-route-id="@Model.ShoppingListId" class="btn btn-warning">Edit</a>
-            <a asp-action="Index" class="btn btn-secondary">Back</a>
+            <a asp-action="Create" class="btn btn-primary">Create New Item</a>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Description</h5>
-            <p class="card-text">@Model.Description</p>
-        </div>
-    </div>
-
-    <h3 class="mt-4">Items</h3>
-    @if (!Model.ShoppingListItems?.Any() ?? true)
+    @if (!Model.Any())
     {
-        <div class="alert alert-info">No items in this list.</div>
+        <div class="alert alert-info">No items found.</div>
     }
     else
     {
@@ -35,7 +24,7 @@
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Item</th>
+                        <th>Name</th>
                         <th>Quantity</th>
                         <th>Unit</th>
                         <th>Status</th>
@@ -43,7 +32,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in Model.ShoppingListItems)
+                    @foreach (var item in Model)
                     {
                         <tr>
                             <td>@item.Name</td>
@@ -60,8 +49,9 @@
                                 }
                             </td>
                             <td>
-                                <a asp-controller="Items" asp-action="Edit" asp-route-id="@item.ItemId" class="btn btn-sm btn-warning">Edit</a>
-                                <form asp-controller="Items" asp-action="Delete" asp-route-id="@item.ItemId" method="post" style="display:inline;">
+                                <a asp-action="Details" asp-route-id="@item.ItemId" class="btn btn-sm btn-info">View</a>
+                                <a asp-action="Edit" asp-route-id="@item.ItemId" class="btn btn-sm btn-warning">Edit</a>
+                                <form asp-action="Delete" asp-route-id="@item.ItemId" method="post" style="display:inline;">
                                     <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure?')">Delete</button>
                                 </form>
                             </td>

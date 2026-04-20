@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dotnet-shopping-list-app
+    ports:
+      - "5109:5109"
+      - "7282:7282"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5109
+    volumes:
+      - ./dotNet-projektni/app.db:/app/app.db
+    restart: unless-stopped
+    networks:
+      - shopping-list-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5109/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  shopping-list-network:
+    driver: bridge
+
+
+
