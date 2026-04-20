@@ -29,11 +29,25 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+# Determine docker compose command (use new 'docker compose' if available, fallback to 'docker-compose')
+determine_compose_cmd() {
+    if docker compose version &> /dev/null; then
+        echo "docker compose"
+    elif docker-compose --version &> /dev/null; then
+        echo "docker-compose"
+    else
+        log_error "Neither 'docker compose' nor 'docker-compose' command found. Please install Docker."
+        exit 1
+    fi
+}
+
 # Script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_DIR="$SCRIPT_DIR"
 APP_DIR="$PROJECT_DIR/dotNet-projektni"
+COMPOSE_CMD=$(determine_compose_cmd)
 
+log_info "Using command: $COMPOSE_CMD"
 log_info "Starting deployment process..."
 log_info "Project directory: $PROJECT_DIR"
 
@@ -47,7 +61,7 @@ fi
 
 # Step 2: Stop existing containers
 log_info "Step 2: Stopping existing containers..."
-if docker-compose -f "$PROJECT_DIR/docker-compose.yml" down --remove-orphans 2>/dev/null; then
+if $COMPOSE_CMD -f "$PROJECT_DIR/docker-compose.yml" down --remove-orphans 2>/dev/null; then
     log_success "Existing containers stopped"
 else
     log_warning "No existing containers to stop"
@@ -57,7 +71,7 @@ fi
 log_info "Step 3: Building and starting Docker containers..."
 cd "$PROJECT_DIR"
 
-if ! docker-compose up --build -d; then
+if ! $COMPOSE_CMD up --build -d; then
     log_error "Failed to start Docker containers"
     exit 1
 fi
@@ -81,7 +95,7 @@ while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
         sleep 1
     else
         log_error "Application failed to become healthy after $MAX_ATTEMPTS attempts"
-        log_error "Check logs with: docker-compose logs app"
+        log_error "Check logs with: $COMPOSE_CMD logs app"
         exit 1
     fi
 done
@@ -92,7 +106,7 @@ echo ""
 log_info "Step 5: Running database migrations..."
 cd "$APP_DIR"
 
-if docker-compose -f "$PROJECT_DIR/docker-compose.yml" exec -T app dotnet ef database update; then
+if $COMPOSE_CMD -f "$PROJECT_DIR/docker-compose.yml" exec -T app dotnet ef database update; then
     log_success "Database migrations completed successfully"
 else
     log_warning "Database migrations completed (may already be up to date)"
@@ -102,13 +116,14 @@ fi
 log_info "Step 6: Verifying deployment..."
 
 log_info "Running containers:"
-docker-compose -f "$PROJECT_DIR/docker-compose.yml" ps
+$COMPOSE_CMD -f "$PROJECT_DIR/docker-compose.yml" ps
 
 log_info ""
 log_success "Deployment completed successfully!"
 log_info ""
 log_info "Application is running at: http://localhost:5109"
-log_info "To view logs: docker-compose -f $PROJECT_DIR/docker-compose.yml logs -f app"
-log_info "To stop containers: docker-compose -f $PROJECT_DIR/docker-compose.yml down"
+log_info "To view logs: $COMPOSE_CMD -f $PROJECT_DIR/docker-compose.yml logs -f app"
+log_info "To stop containers: $COMPOSE_CMD -f $PROJECT_DIR/docker-compose.yml down"
+
 
 
